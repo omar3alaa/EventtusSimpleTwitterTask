@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Eventtus Simple Twitter</string>
+    <string name="username">Username</string>
+    <string name="myPrefs">myPrefrence</string>
+</resources>
