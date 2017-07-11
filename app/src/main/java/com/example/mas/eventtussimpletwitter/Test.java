@@ -4,9 +4,6 @@ import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.TextView;
 
-import com.twitter.sdk.android.core.Twitter;
-
-
 public class Test extends AppCompatActivity {
     SharedPreferences sharedPreferences;
     @Override

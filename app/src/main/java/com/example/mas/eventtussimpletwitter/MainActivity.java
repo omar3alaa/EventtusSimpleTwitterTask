@@ -26,35 +26,43 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        final TwitterConfig config = new TwitterConfig.Builder(this)
-                .logger(new DefaultLogger(Log.DEBUG))
-                .twitterAuthConfig(new TwitterAuthConfig(TWITTER_KEY, TWITTER_SECRET))
-                .debug(true)
-                .build();
-        Twitter.initialize(config);
-        TwitterCore.getInstance();
-        loginButton = (TwitterLoginButton) findViewById(R.id.login_button);
-        loginButton.setEnabled(true);
-        loginButton.setCallback(new Callback<TwitterSession>() {
-            @Override
-            public void success(Result<TwitterSession> result) {
-                Log.d("Login","Success");
-                sharedPreferences=getSharedPreferences(getString(R.string.myPrefs),MODE_PRIVATE);
-                SharedPreferences.Editor editor = sharedPreferences.edit();
-                username = result.data.getUserName();
-                editor.putString(getString(R.string.username),username);
-                editor.apply();
-                Intent intent = new Intent(MainActivity.this,Test.class);
-                startActivity(intent);
+        Twitter.initialize(this);
+        TwitterSession session = TwitterCore.getInstance().getSessionManager().getActiveSession();
+        if(session!=null){
+            Intent intent = new Intent(MainActivity.this,Test.class);
+            startActivity(intent);
 
-            }
+        }
+        else {
+            final TwitterConfig config = new TwitterConfig.Builder(this)
+                    .logger(new DefaultLogger(Log.DEBUG))
+                    .twitterAuthConfig(new TwitterAuthConfig(TWITTER_KEY, TWITTER_SECRET))
+                    .debug(true)
+                    .build();
+            Twitter.initialize(config);
+            TwitterCore.getInstance();
+            loginButton = (TwitterLoginButton) findViewById(R.id.login_button);
+            loginButton.setEnabled(true);
+            loginButton.setCallback(new Callback<TwitterSession>() {
+                @Override
+                public void success(Result<TwitterSession> result) {
+                    Log.d("Login", "Success");
+                    sharedPreferences = getSharedPreferences(getString(R.string.myPrefs), MODE_PRIVATE);
+                    SharedPreferences.Editor editor = sharedPreferences.edit();
+                    username = result.data.getUserName();
+                    editor.putString(getString(R.string.username), username);
+                    editor.apply();
+                    Intent intent = new Intent(MainActivity.this, Test.class);
+                    startActivity(intent);
 
-            @Override
-            public void failure(TwitterException exception) {
-               Log.d("Login",exception.getMessage());
-            }
-        });
+                }
 
+                @Override
+                public void failure(TwitterException exception) {
+                    Log.d("Login", exception.getMessage());
+                }
+            });
+        }
     }
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
