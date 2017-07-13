@@ -9,36 +9,40 @@ import com.twitter.sdk.android.core.DefaultLogger;
 import com.twitter.sdk.android.core.Result;
 import com.twitter.sdk.android.core.Twitter;
 import com.twitter.sdk.android.core.TwitterAuthConfig;
+
 import com.twitter.sdk.android.core.TwitterConfig;
 import com.twitter.sdk.android.core.TwitterCore;
 import com.twitter.sdk.android.core.TwitterException;
 import com.twitter.sdk.android.core.TwitterSession;
 import com.twitter.sdk.android.core.identity.TwitterLoginButton;
 
-
-public class MainActivity extends AppCompatActivity {
+public class Login extends AppCompatActivity {
     TwitterLoginButton loginButton;
-    String TWITTER_KEY = "mPLzuwZetMxjVbfaZLTP0wpkW";
-    String TWITTER_SECRET = "whjnyHLdGGQCXqr33bQMlfrtn2LZStHuJN6Q6vCY8geWwTI9Vo";
-    String username;
+    String TWITTER_KEY = "mPLzuwZetMxjVbfaZLTP0wpkW"; //The API KEY
+    String TWITTER_SECRET = "whjnyHLdGGQCXqr33bQMlfrtn2LZStHuJN6Q6vCY8geWwTI9Vo"; //The API SECRET
+    long userID;
     SharedPreferences sharedPreferences;
+    SharedPreferences.Editor editor;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-        Twitter.initialize(this);
-        TwitterSession session = TwitterCore.getInstance().getSessionManager().getActiveSession();
+        setContentView(R.layout.login);
+        // First we will  initialize Twitter with custom config
+        final TwitterConfig config = new TwitterConfig.Builder(this)
+                .logger(new DefaultLogger(Log.DEBUG))
+                .twitterAuthConfig(new TwitterAuthConfig(TWITTER_KEY, TWITTER_SECRET))
+                .debug(true)
+                .build();
+        Twitter.initialize(config);
+        // Here to check if there are another active sessions
+       TwitterSession session = TwitterCore.getInstance().getSessionManager().getActiveSession();
         if(session!=null){
-            Intent intent = new Intent(MainActivity.this,Test.class);
+            // if there are another active sessions we will dismiss login screen and go to Followers Screen
+            Intent intent = new Intent(Login.this,Followers.class);
             startActivity(intent);
-
         }
         else {
-            final TwitterConfig config = new TwitterConfig.Builder(this)
-                    .logger(new DefaultLogger(Log.DEBUG))
-                    .twitterAuthConfig(new TwitterAuthConfig(TWITTER_KEY, TWITTER_SECRET))
-                    .debug(true)
-                    .build();
+            // if there are no active sessions we will make user login with twitter account and initialize a new session
             Twitter.initialize(config);
             TwitterCore.getInstance();
             loginButton = (TwitterLoginButton) findViewById(R.id.login_button);
@@ -47,14 +51,14 @@ public class MainActivity extends AppCompatActivity {
                 @Override
                 public void success(Result<TwitterSession> result) {
                     Log.d("Login", "Success");
+                    // After a successful login we will save his userID in device settings to use it later, then we will display followers screen
                     sharedPreferences = getSharedPreferences(getString(R.string.myPrefs), MODE_PRIVATE);
-                    SharedPreferences.Editor editor = sharedPreferences.edit();
-                    username = result.data.getUserName();
-                    editor.putString(getString(R.string.username), username);
+                    editor = sharedPreferences.edit();
+                    userID = result.data.getUserId();
+                    editor.putLong(getString(R.string.userID), userID);
                     editor.apply();
-                    Intent intent = new Intent(MainActivity.this, Test.class);
+                    Intent intent = new Intent(Login.this, Followers.class);
                     startActivity(intent);
-
                 }
 
                 @Override
@@ -63,7 +67,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
-    }
+        }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);

@@ -1,5 +1,10 @@
 <resources>
     <string name="app_name">Eventtus Simple Twitter</string>
-    <string name="username">Username</string>
+    <string name="userID">userID</string>
     <string name="myPrefs">myPrefrence</string>
+    <string name="Description">description</string>
+    <string name="Name">name</string>
+    <string name="Handle">screen_name</string>
+    <string name="ProfilePic">profile_image_url</string>
+    <string name="profilePicDesc">Profile Picture</string>
 </resources>
