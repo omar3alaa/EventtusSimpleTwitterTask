@@ -1,6 +1,8 @@
 package com.example.mas.eventtussimpletwitter;
+import android.app.ProgressDialog;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Base64;
@@ -26,12 +28,14 @@ public class Followers extends AppCompatActivity {
     SharedPreferences sharedPreferences;
     ListView followersList;
     long userID;
+    ProgressDialog dialog;
     String myJSON;
     final static String TWITTER_KEY = "mPLzuwZetMxjVbfaZLTP0wpkW";
     final static String TWITTER_SECRET = "whjnyHLdGGQCXqr33bQMlfrtn2LZStHuJN6Q6vCY8geWwTI9Vo";
     public static final String TAG = "TwitterUtils";
-
     JSONArray Users = null;
+     SimpleAdapter adapter=null;
+    SwipeRefreshLayout SwipeContatiner;
     String Cursor = "-1"; // Cursor initialization with -1 to show the first page of followers
     ArrayList<HashMap<String, String>> userList=new ArrayList<>();
     private static final String TAG_RESULTS = "users";
@@ -40,12 +44,30 @@ public class Followers extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.followers);
         followersList = (ListView) findViewById(R.id.followerList);
+        SwipeContatiner = (SwipeRefreshLayout) findViewById(R.id.SwipeContatiner);
         // Here is why we saved userID in device settings to re-call it and use it in our httpConnection in getData() method
         sharedPreferences = getSharedPreferences(getString(R.string.myPrefs), MODE_PRIVATE);
         String UserID = getString(R.string.userID);
         userID = sharedPreferences.getLong(UserID, 0);
         getData();
+        SwipeContatiner.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                // Your code to refresh the list here.
+                // Make sure you call swipeContainer.setRefreshing(false)
+                // once the network request has completed successfully.
+               finish();
+                startActivity(getIntent());
+        }
+        });
+        // Configure the refreshing colors
+        SwipeContatiner.setColorSchemeResources(android.R.color.holo_blue_bright,
+                android.R.color.holo_green_light,
+                android.R.color.holo_orange_light,
+                android.R.color.holo_red_light);
     }
+
+
 
     protected void addList() {
 
@@ -61,7 +83,6 @@ public class Followers extends AppCompatActivity {
                 String userName = c.getString(getString(R.string.Handle));
                 String ProfilePic = c.getString(getString(R.string.ProfilePic));
                 HashMap<String, String> user = new HashMap<>();
-
                 user.put(getString(R.string.Description), bio);
                 user.put(getString(R.string.Name), fullName);
                 user.put(getString(R.string.Handle), userName);
@@ -82,19 +103,26 @@ public class Followers extends AppCompatActivity {
         }
     }
     protected void showList() {
+        dialog.dismiss();
+        if(SwipeContatiner.isRefreshing()){
+            SwipeContatiner.setRefreshing(false);
+        }
         //After finishing addList() we need to show these results in a beautiful list
-        SimpleAdapter adapter;
         adapter = new SimpleAdapter(
                 this, userList, R.layout.followersitem,
                 new String[]{getString(R.string.Description), getString(R.string.Name), getString(R.string.Handle), getString(R.string.ProfilePic)},
                 new int[]{R.id.bio, R.id.fullName, R.id.handle, R.id.profilePic}
         );
+
         adapter.setViewBinder(new CustomViewBinder()); //Custom view binder to populate every string with its ID let's read it together
         if (adapter.getCount() == 0) {
             followersList.setAdapter(null);
         } else {
             followersList.setAdapter(adapter);
+
+
         }
+
     }
 
 
@@ -162,6 +190,17 @@ public class Followers extends AppCompatActivity {
     //GetData method to make API Requests with Authorization header as Twitter API 1.1 states any request need oAuth header to be completed successfully
     public void getData() {
          class getFollowers extends AsyncTask<String, Void, String>{
+             @Override
+             protected void onPreExecute() {
+                 super.onPreExecute();
+                 if(Cursor.equals("-1")) {
+                     dialog = new ProgressDialog(Followers.this);
+                     dialog.setMessage("Loading, please wait");
+                     dialog.setTitle("Getting followers!");
+                     dialog.show();
+                     dialog.setCancelable(false);
+                 }
+             }
 
              @Override
              protected String doInBackground(String... params) {
@@ -207,10 +246,13 @@ public class Followers extends AppCompatActivity {
 
              @Override
              protected void onPostExecute(String result) {
-                 //After reading url and parsing JSON result we will add this result in a List named userList by method addList
+
+                 //After reading url and parsing JSON result we will add this result in a List named userList by method addList();
                  myJSON=result;
                  System.out.print(result);
                  addList();
+
+
              }
 
              }

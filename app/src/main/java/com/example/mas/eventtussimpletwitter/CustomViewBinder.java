@@ -68,6 +68,6 @@ class CustomViewBinder implements SimpleAdapter.ViewBinder {
     }
     private void populateHandle(final View view, final String data){
         TextView Handle = (TextView) view.findViewById(R.id.handle);
-        Handle.setText(data);
+        Handle.setText("@"+data);
     }
 }
