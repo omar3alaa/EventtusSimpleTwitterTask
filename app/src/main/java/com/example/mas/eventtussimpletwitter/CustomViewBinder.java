@@ -1,4 +1,6 @@
 package com.example.mas.eventtussimpletwitter;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ProgressBar;
@@ -6,7 +8,6 @@ import android.widget.SimpleAdapter;
 import android.widget.TextView;
 import com.squareup.picasso.Callback;
 import com.squareup.picasso.Picasso;
-
 
 //Hi, definitely you came from Followers class.
     // Am I right?
@@ -69,5 +70,14 @@ class CustomViewBinder implements SimpleAdapter.ViewBinder {
     private void populateHandle(final View view, final String data){
         TextView Handle = (TextView) view.findViewById(R.id.handle);
         Handle.setText("@"+data);
+        Handle.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(view.getContext(),TimeLine.class);
+                intent.putExtra("screen_name",data);
+                view.getContext().startActivity(intent);
+
+            }
+        });
     }
 }

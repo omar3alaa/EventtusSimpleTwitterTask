@@ -7,4 +7,8 @@
     <string name="Handle">screen_name</string>
     <string name="ProfilePic">profile_image_url</string>
     <string name="profilePicDesc">Profile Picture</string>
+    <string name="Followers">followers</string>
+    <string name="NoFollowers">No followers yet.</string>
+    <string name="AuthToken">AuthToken</string>
+
 </resources>

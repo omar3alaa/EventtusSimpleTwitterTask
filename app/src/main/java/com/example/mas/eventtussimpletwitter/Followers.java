@@ -1,6 +1,11 @@
 package com.example.mas.eventtussimpletwitter;
 import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.Credentials;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
@@ -10,10 +15,17 @@ import android.util.Log;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 
+import com.twitter.sdk.android.core.AuthToken;
+import com.twitter.sdk.android.core.Twitter;
+import com.twitter.sdk.android.core.TwitterAuthToken;
+import com.twitter.sdk.android.core.TwitterCore;
+import com.twitter.sdk.android.core.services.StatusesService;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -30,15 +42,23 @@ public class Followers extends AppCompatActivity {
     long userID;
     ProgressDialog dialog;
     String myJSON;
-    final static String TWITTER_KEY = "mPLzuwZetMxjVbfaZLTP0wpkW";
-    final static String TWITTER_SECRET = "whjnyHLdGGQCXqr33bQMlfrtn2LZStHuJN6Q6vCY8geWwTI9Vo";
-    public static final String TAG = "TwitterUtils";
+
+
     JSONArray Users = null;
      SimpleAdapter adapter=null;
+    SharedPreferences.Editor editor;
     SwipeRefreshLayout SwipeContatiner;
+    String AuthToken;
     String Cursor = "-1"; // Cursor initialization with -1 to show the first page of followers
     ArrayList<HashMap<String, String>> userList=new ArrayList<>();
     private static final String TAG_RESULTS = "users";
+    @Override
+    public void onBackPressed() {
+        TwitterCore.getInstance().getSessionManager().clearActiveSession();
+        Intent intent = new Intent(Followers.this,Login.class);
+        intent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        startActivity(intent);
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -49,13 +69,25 @@ public class Followers extends AppCompatActivity {
         sharedPreferences = getSharedPreferences(getString(R.string.myPrefs), MODE_PRIVATE);
         String UserID = getString(R.string.userID);
         userID = sharedPreferences.getLong(UserID, 0);
-        getData();
+        AuthToken = sharedPreferences.getString(getString(R.string.AuthToken),"");
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();//To check if there is a network connection or not
+        if(activeNetworkInfo!=null){ // if there is a internet connection, then we will getData from webservice
+        getData();}
+        else{
+            // else if there is no internet connection, show the previously cached data
+            try {
+                userList = (ArrayList<HashMap<String, String>>) ObjectSerializer.deserialize(sharedPreferences.getString(getString(R.string.Followers),ObjectSerializer.serialize(new ArrayList<HashMap<String,String>>())));
+            } catch (IOException | ClassNotFoundException e) {
+                e.printStackTrace();
+            }
+            showList();
+        }
         SwipeContatiner.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
             @Override
             public void onRefresh() {
-                // Your code to refresh the list here.
-                // Make sure you call swipeContainer.setRefreshing(false)
-                // once the network request has completed successfully.
+                //Here to refresh the activity and show the new data
+
                finish();
                 startActivity(getIntent());
         }
@@ -67,8 +99,31 @@ public class Followers extends AppCompatActivity {
                 android.R.color.holo_red_light);
     }
 
+    protected void showList() {
+        if(dialog!=null&&dialog.isShowing()) {
+            dialog.dismiss();
+        }
+        if(SwipeContatiner.isRefreshing()){
+            SwipeContatiner.setRefreshing(false);
+        }
+        //After finishing addList() we need to show these results in a beautiful list
+        adapter = new SimpleAdapter(
+                this, userList, R.layout.followersitem,
+                new String[]{getString(R.string.Description), getString(R.string.Name), getString(R.string.Handle), getString(R.string.ProfilePic)},
+                new int[]{R.id.bio, R.id.fullName, R.id.handle, R.id.profilePic}
+        );
+
+        adapter.setViewBinder(new CustomViewBinder()); //Custom view binder to populate every string with its ID let's read it together
+        if (adapter.getCount() == 0) {
+            followersList.setAdapter(null);
+
+        } else {
+            followersList.setAdapter(adapter);
 
 
+        }
+
+    }
     protected void addList() {
 
         try {
@@ -95,97 +150,20 @@ public class Followers extends AppCompatActivity {
                 getData();
             }
             else if(Cursor.equals("0")){
+                editor= sharedPreferences.edit();
+                try {
+                    editor.putString(getString(R.string.Followers),ObjectSerializer.serialize(userList));
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                editor.apply();
                 showList();
             }
 
         } catch (JSONException e) {
             e.printStackTrace();
         }
-    }
-    protected void showList() {
-        dialog.dismiss();
-        if(SwipeContatiner.isRefreshing()){
-            SwipeContatiner.setRefreshing(false);
-        }
-        //After finishing addList() we need to show these results in a beautiful list
-        adapter = new SimpleAdapter(
-                this, userList, R.layout.followersitem,
-                new String[]{getString(R.string.Description), getString(R.string.Name), getString(R.string.Handle), getString(R.string.ProfilePic)},
-                new int[]{R.id.bio, R.id.fullName, R.id.handle, R.id.profilePic}
-        );
-
-        adapter.setViewBinder(new CustomViewBinder()); //Custom view binder to populate every string with its ID let's read it together
-        if (adapter.getCount() == 0) {
-            followersList.setAdapter(null);
-        } else {
-            followersList.setAdapter(adapter);
-
-
-        }
-
-    }
-
-
-
-
-    public static String appAuthentication() {
-
-        HttpURLConnection httpConnection = null;
-        OutputStream outputStream;
-        BufferedReader bufferedReader;
-        StringBuilder response = null;
-
-        try {
-            URL url = new URL("https://api.twitter.com/oauth2/token");
-            httpConnection = (HttpURLConnection) url.openConnection();
-            httpConnection.setRequestMethod("POST");
-            httpConnection.setDoOutput(true);
-            httpConnection.setDoInput(true);
-
-            String accessCredential = TWITTER_KEY + ":"
-                    + TWITTER_SECRET;
-            String authorization = "Basic "
-                    + Base64.encodeToString(accessCredential.getBytes(),
-                    Base64.NO_WRAP);
-            String param = "grant_type=client_credentials";
-
-            httpConnection.addRequestProperty("Authorization", authorization);
-            httpConnection.setRequestProperty("Content-Type",
-                    "application/x-www-form-urlencoded;charset=UTF-8");
-            httpConnection.connect();
-
-            outputStream = httpConnection.getOutputStream();
-            outputStream.write(param.getBytes());
-            outputStream.flush();
-            outputStream.close();
-            // int statusCode = httpConnection.getResponseCode();
-            // String reason =httpConnection.getResponseMessage();
-
-            bufferedReader = new BufferedReader(new InputStreamReader(
-                    httpConnection.getInputStream()));
-            String line;
-            response = new StringBuilder();
-
-            while ((line = bufferedReader.readLine()) != null) {
-                response.append(line);
-            }
-
-            Log.d(TAG,
-                    "POST response code: "
-                            + String.valueOf(httpConnection.getResponseCode()));
-            Log.d(TAG, "JSON response: " + response.toString());
-
-        } catch (Exception e) {
-            Log.e(TAG, "POST TAG = \"TwitterUtils\";\n" +
-                    "\nerror: " + Log.getStackTraceString(e));
-
-        } finally {
-            if (httpConnection != null) {
-                httpConnection.disconnect();
-            }
-        }
-
-        return response != null ? response.toString() : null;
     }
     //GetData method to make API Requests with Authorization header as Twitter API 1.1 states any request need oAuth header to be completed successfully
     public void getData() {
@@ -207,14 +185,15 @@ public class Followers extends AppCompatActivity {
                  String data = "";
                  InputStream iStream ;
                  HttpURLConnection urlConnection ;
+
                  try {
+
                      URL url = new URL("https://api.twitter.com/1.1/followers/list.json?count=200&cursor="+Cursor+"&user_id="+userID);
                      // Creating an http connection to communicate with url
-
                      urlConnection = (HttpsURLConnection) url.openConnection();
                      urlConnection.setRequestMethod("GET");
-
-                     String jsonString = appAuthentication();
+                    
+                     String jsonString = OAuthentication.appAuthentication(); // calling the appAuthentication method to get the access token and access type
                      JSONObject jsonObjectDocument = new JSONObject(jsonString);
                      String token = jsonObjectDocument.getString("token_type") + " "
                              + jsonObjectDocument.getString("access_token");
@@ -222,6 +201,7 @@ public class Followers extends AppCompatActivity {
                      urlConnection.setRequestProperty("Content-Type",
                              "application/json");
                      urlConnection.connect();
+
                      // Reading data from url
                      iStream = urlConnection.getInputStream();
 

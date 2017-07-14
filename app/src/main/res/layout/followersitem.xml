@@ -48,20 +48,23 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
                 android:paddingLeft="@dimen/feed_item_profile_info_padd">
-
-                <TextView
-                    android:id="@+id/fullName"
-                    android:layout_width="fill_parent"
-                    android:layout_height="wrap_content"
-                    android:textSize="@dimen/feed_item_profile_name"
-                    android:textStyle="bold" />
-
                 <TextView
                     android:id="@+id/handle"
                     android:layout_width="fill_parent"
                     android:layout_height="wrap_content"
-                    android:textColor="@color/handle"
-                    android:textSize="@dimen/feed_item_handle" />
+                    android:textColor="@color/link"
+                    android:textSize="@dimen/feed_item_handle"
+                    android:textStyle="bold"
+                    />
+                <TextView
+                    android:id="@+id/fullName"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:textColor="@color/fullName"
+                    android:textSize="@dimen/feed_item_profile_name"
+                    android:textStyle="bold" />
+
+
             </LinearLayout>
         </LinearLayout>
 

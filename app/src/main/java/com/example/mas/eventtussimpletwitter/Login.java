@@ -4,12 +4,13 @@ import android.content.SharedPreferences;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+
+import com.twitter.sdk.android.core.AuthToken;
 import com.twitter.sdk.android.core.Callback;
 import com.twitter.sdk.android.core.DefaultLogger;
 import com.twitter.sdk.android.core.Result;
 import com.twitter.sdk.android.core.Twitter;
 import com.twitter.sdk.android.core.TwitterAuthConfig;
-
 import com.twitter.sdk.android.core.TwitterConfig;
 import com.twitter.sdk.android.core.TwitterCore;
 import com.twitter.sdk.android.core.TwitterException;
@@ -23,6 +24,10 @@ public class Login extends AppCompatActivity {
     long userID;
     SharedPreferences sharedPreferences;
     SharedPreferences.Editor editor;
+    AuthToken authToken;
+
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -35,7 +40,7 @@ public class Login extends AppCompatActivity {
                 .build();
         Twitter.initialize(config);
         // Here to check if there are another active sessions
-       TwitterSession session = TwitterCore.getInstance().getSessionManager().getActiveSession();
+       final TwitterSession session = TwitterCore.getInstance().getSessionManager().getActiveSession();
         if(session!=null){
             // if there are another active sessions we will dismiss login screen and go to Followers Screen
             Intent intent = new Intent(Login.this,Followers.class);
@@ -55,7 +60,10 @@ public class Login extends AppCompatActivity {
                     sharedPreferences = getSharedPreferences(getString(R.string.myPrefs), MODE_PRIVATE);
                     editor = sharedPreferences.edit();
                     userID = result.data.getUserId();
+                    authToken = result.data.getAuthToken();
+                    editor.putString(getString(R.string.Followers),"");
                     editor.putLong(getString(R.string.userID), userID);
+                    editor.putString(getString(R.string.AuthToken), String.valueOf(authToken));
                     editor.apply();
                     Intent intent = new Intent(Login.this, Followers.class);
                     startActivity(intent);
